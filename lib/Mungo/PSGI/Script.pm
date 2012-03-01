@@ -5,70 +5,65 @@ use warnings;
 # VERSION
 use Cwd ();
 use Sub::Quote qw(quote_sub);
+use Package::Stash ();
+use SelectSaver ();
+use Data::Dumper ();
 
-my %file_packages;
+sub new {
+    my $class = shift;
+    my $file = shift;
+    my $self = bless {
+        file => $file,
+    }, $class;
+    $self->_parse;
+    return $self;
+}
+
+my %file_objects;
 sub fetch {
     my $class = shift;
     my $file = Cwd::abs_path(shift);
     my $reload = shift;
-    my $package = $file_packages{$file};
-    if ($package && $package->can('new')) {
-        my $script = $package->new;
-        if ($reload && $script->file_timestamp > $script->timestamp) {
-            $script->parse;
-        }
+    my $script = $file_objects{$file};
+    if ($script && $reload && $script->file_timestamp > $script->timestamp) {
+        $script = $file_objects{$file} = undef;
     }
-    else {
-        return $class->generate($package, $file);
+    if (!$script) {
+        $script = $file_objects{$file} = $class->new($file);
     }
+    return $script;
+}
+
+sub _package {
+    my $self = shift;
+    return $self->{package};
 }
 
 my $package_inc = 0;
-sub generate {
-    my $class = shift;
-    my $package = shift || sprintf __PACKAGE__ . '::__ASP_%s_', ++$package_inc;
-    my $file = shift;
-    no strict 'refs';
-
-    my $self = bless {}, $package;
-    *{ $package . '::new' } = sub { $self };
-    @{ $package . '::ISA' } = __PACKAGE__;
-
-    $self->parse($file);
-    return $self;
-}
-
-sub parse {
+sub _parse {
     my $self = shift;
-    if (@_) {
-        $self->{file} = shift;
-    }
-    my $file = $self->{file};
+    my $package = sprintf __PACKAGE__ . '::__ASP_%s__', ++$package_inc;
+    $self->{package} = $package;
 
-    open $fh, '<', $file or die;
+    my $file = $self->file;
+    open my $fh, '<', $file or die "Can't read $file: $!";
     my $contents = do { local $/; <$fh> };
     close $fh;
-    $self->_clear_package;
     $self->_code_gen($contents);
 
-    $self->timestamp($self->file_timestamp);
+    $self->{timestamp} = $self->file_timestamp;
     return 1;
 }
 
-sub _clear_package {
+sub DESTROY {
     my $self = shift;
-    my $package = ref $self;
+    my $package = $self->_package;
+    return
+        unless $package;
     my $stash = Package::Stash->new($package);
     for my $symbol ($stash->list_all_symbols) {
-        unless ($symbol eq '@ISA' || $symbol eq '&new') {
-            $stash->remove_symbol($symbol);
-        }
+        $stash->remove_symbol($symbol);
     }
-}
-
-sub code {
-    my $self = shift;
-    return $self->{code};
 }
 
 sub _code_gen {
@@ -76,42 +71,88 @@ sub _code_gen {
     my $content = shift;
 
     my $script_code = $self->_transform_code($content);
-    my $package = ref $self;
+    my $package = $self->_package;
 
-    my $prolog = <<"END_CODE";
+    $script_code = <<"END_CODE" . $script_code;
+        my \$Request = \$script->{Request};
+        my \$Server = \$Request->{Server};
+        my \$Response = \$Request->{Response};
         package $package;
-        my \$Request = \$script->{Request}
-        my \$Server = \$Request->{Server}
-        my \$Response = \$Request->{Response}
 END_CODE
     my $code = quote_sub $package . '::code', $script_code, { '$script' => \$self }, { no_install => 1 };
     $self->{code} = $code;
 }
 
+sub _string_as_i18n {
+    return ''
+        unless length $_[0];
+    my $s = Data::Dumper::Dumper($_[0]);
+    substr $s, 0, 7, '<%= $main::Response->i18n(';
+    substr $s, -2, 2, ') %>';
+    return $s;
+}
+
+sub _string_as_print {
+    return ''
+        unless length $_[0];
+    my $s = Data::Dumper::Dumper($_[0]);
+    substr $s, 0, 7, 'print';
+    return $s;
+}
+
 sub _transform_code {
     my $self = shift;
-    my $content = shift;
+    my $string = shift;
+
+    $string =~ s/I\[\[(.*?)\]\]/_string_as_i18n($1)/seg;
+    $string =~ s/^(.*?)(?=<%|$)/_string_as_print($1)/se;
+    # Replace non-code
+    $string =~ s/(?<=%>)(?!<%)(.*?)(?=<%|$)/_string_as_print($1)/seg;
+    # fixup code
+    $string =~ s{
+        <%([~=]?)(.*?)%>
+    }{
+          ($1 eq '~')   ? "print HTML::Entities::encode_entities($2,'<&>\"');"
+        : ($1 eq '=')   ? "print $2;"   # This is <%= ... %>
+                        : "$2;"         # This is <% ... %>
+    }sexg;
+    return $string;
+}
+
+sub code {
+    my $self = shift;
+    return $self->{code};
+}
+
+sub file {
+    my $self = shift;
+    return $self->{file};
 }
 
 sub timestamp {
     my $self = shift;
-    if (@_) {
-        return $self->{timestamp} = shift;
-    }
     return $self->{timestamp};
 }
 
 sub file_timestamp {
     my $self = shift;
-    my $timestamp = (stat Cwd::abs_path($self->{file}))[9];
+    my $timestamp = (stat Cwd::abs_path($self->file))[9];
     return $timestamp;
 }
 
 sub run {
     my $self = shift;
-    my $Request = shift;
-}
+    $self->{Request} = shift;
+    my $resp = $self->{Request}->Response;
 
+    my $b = '';
+    open my $io, '>', \$b;
+
+    tie *$io, ref $resp, $resp;
+    my $saver = SelectSaver->new($io);
+
+    $self->code->();
+}
 
 1;
 

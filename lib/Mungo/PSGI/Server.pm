@@ -19,13 +19,16 @@ sub new {
 }
 
 sub Request {
+    my $self = shift;
     return $self->{Request};
 }
 sub Response {
+    my $self = shift;
     return $self->Request->Response;
 }
 
 sub CurrentFile {
+    my $self = shift;
     return $self->Response->CurrentFile;
 }
 

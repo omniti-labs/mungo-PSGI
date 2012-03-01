@@ -7,11 +7,14 @@ use parent qw(Plack::Response);
 use Scalar::Util qw(weaken);
 use URI;
 use URI::QueryParam;
+use Mungo::PSGI::Script;
 
 sub new {
     my $class = shift;
     my $req = shift;
     my $self = $class->SUPER::new;
+    $self->status(200);
+    $self->content_type('text/html');
     $self->{files} = [];
     $self->{Request} = $req;
     weaken $self->{Request};
@@ -27,7 +30,7 @@ sub Request {
 sub CurrentFile {
     my $self = shift;
     my $files = $self->{files};
-    return wantarray ? @$files : $files->[0];
+    return wantarray ? map { $_->file } @$files : $files->[0]->file;
 }
 
 sub AddHeader {
@@ -42,16 +45,16 @@ sub Cookies {
 
     my $cookie = $self->cookies->{$cname} ||= {};
     if (!ref $cookie) {
-        $cookie = $self->cookies->{$cname} = { value => $cookie }
+        $cookie = $self->cookies->{$cname} = { value => $cookie };
     }
 
-    if (! @_)
+    if (! @_) {
         $cookie->{value} = $value;
         return;
     }
 
     my $key = $value;
-    my $value = shift;
+    $value = shift;
     # cookie properties
     if ($key =~ /^(?:Expires|Path|Domain|Secure)$/) {
         $cookie->{lc $key} = $value;
@@ -84,7 +87,9 @@ sub Trapped {
 sub Include {
     my $self = shift;
     my $file = shift;
-    my $script = Mungo::PSGI::Script->fetch($file, $self->{request}->env->{'mungo.reload'});
+    my $reload = $self->Request->env->{'mungo.reload'};
+    my $script = Mungo::PSGI::Script->fetch($file, $reload);
+    push @{ $self->{files} }, $script;
     $script->run($self->Request);
 }
 
@@ -121,5 +126,18 @@ sub Flush {
 sub i18nHandler {}
 sub i18n {}
 
+sub TIEHANDLE {
+    my $class = shift;
+    my $self = shift;
+    return $self;
+}
+sub PRINT {
+    my $self = shift;
+    $self->print(@_);
+}
+sub PRINTF {
+    my $self = shift;
+    $self->print(sprintf shift, @_);
+}
 1;
 

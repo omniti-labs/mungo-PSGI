@@ -8,6 +8,8 @@ use Plack::Util::Accessor qw(buffer reload);
 
 use Plack::Request;
 use File::Spec;
+use Mungo::PSGI::Request;
+use Try::Tiny;
 
 sub serve_path {
     my ($self, $env, $file) = @_;
@@ -18,6 +20,7 @@ sub serve_path {
         $request->Response->Include($file);
     }
     catch {
+        warn $_;
         unless ($_ && ref $_ && ref $_ eq 'ARRAY' && $_->[0] eq 'Mungo::End') {
             die $_;
         }

@@ -4,6 +4,8 @@ use strict;
 use warnings;
 # VERSION
 use parent qw(Plack::Request);
+use Mungo::PSGI::Server;
+use Mungo::PSGI::Response;
 
 sub new {
     my ($class, $env, $file) = @_;
@@ -24,8 +26,8 @@ sub Server {
 }
 
 sub Cookies {
-    my ($self, $cookie, $key) = shift;
-    my $cookie = $self->cookies->{$cookies};
+    my ($self, $cname, $key) = shift;
+    my $cookie = $self->cookies->{$cname};
     if ($cookie !~ /[=&]/) {
         return $cookie;
     }
@@ -94,7 +96,7 @@ sub IsSecure {
 
 sub Header {
     my $self = shift;
-    return $sefl->header(@_);
+    return $self->header(@_);
 }
 
 1;
