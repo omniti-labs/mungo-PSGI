@@ -1,63 +1,60 @@
 package Mungo::PSGI::Script;
-# ABSTRACT: Mungo script file
+# ABSTRACT: Mungo script
 use strict;
 use warnings;
 # VERSION
-use Cwd ();
-use Sub::Quote qw(quote_sub);
 use Package::Stash ();
 use SelectSaver ();
 use Data::Dumper ();
+use Mungo::PSGI::Script::Memory;
+use Mungo::PSGI::Script::File;
 
 sub new {
     my $class = shift;
-    my $file = shift;
-    my $self = bless {
-        file => $file,
-    }, $class;
+    my $self = bless { @_ }, $class;
     $self->_parse;
     return $self;
 }
 
-my %file_objects;
+sub _package { $_[0]->{package} }
+sub code { $_[0]->{code} }
+sub timestamp { $_[0]->{timestamp} }
+
+sub up_to_date { 1 }
+
 sub fetch {
     my $class = shift;
-    my $file = Cwd::abs_path(shift);
+    my $file = shift;
     my $reload = shift;
-    my $script = $file_objects{$file};
-    if ($script && $reload && $script->file_timestamp > $script->timestamp) {
-        $script = $file_objects{$file} = undef;
+    if ( ref $file ) {
+        my $content = $$file;
+        return Mungo::PSGI::Script::Memory->fetch($$file, $reload);
     }
-    if (!$script) {
-        $script = $file_objects{$file} = $class->new($file);
+    else {
+        return Mungo::PSGI::Script::File->fetch($file, $reload);
     }
-    return $script;
 }
 
-sub _package {
-    my $self = shift;
-    return $self->{package};
-}
+{
+    my $package_inc = 0;
+    sub _parse {
+        my $self = shift;
 
-my $package_inc = 0;
-sub _parse {
-    my $self = shift;
-    my $package = sprintf __PACKAGE__ . '::__ASP_%s__', ++$package_inc;
-    $self->{package} = $package;
+        $self->{package} = sprintf '%s::__ASP_%s__', __PACKAGE__, ++$package_inc;
 
-    my $file = $self->file;
-    open my $fh, '<', $file or die "Can't read $file: $!";
-    my $contents = do { local $/; <$fh> };
-    close $fh;
-    $self->_code_gen($contents);
+        my $content = $self->content;
 
-    $self->{timestamp} = $self->file_timestamp;
-    return 1;
+        $self->_code_gen($content);
+        $self->{timestamp} = time;
+
+        return 1;
+    }
 }
 
 sub DESTROY {
     my $self = shift;
     my $package = $self->_package;
+    # in global destruction this may have already gone away
     return
         unless $package;
     my $stash = Package::Stash->new($package);
@@ -68,18 +65,28 @@ sub DESTROY {
 
 sub _code_gen {
     my $self = shift;
-    my $content = shift;
 
-    my $script_code = $self->_transform_code($content);
-    my $package = $self->_package;
+    my $code = eval sprintf <<'END_CODE', $self->_package, $self->file, $self->_transform_code(shift);
+my $script = $self;
+package %s;
+sub code {
+my $Request = $script->{Request};
+my $Server = $Request->Server;
+my $Response = $Request->Response;
+my $__saver = SelectSaver->new(do {
+    open my $io, '>', \(my $f);
+    tie *$io, ref $Response, $Response;
+    $io;
+});
 
-    $script_code = <<"END_CODE" . $script_code;
-        my \$Request = \$script->{Request};
-        my \$Server = \$Request->{Server};
-        my \$Response = \$Request->{Response};
-        package $package;
+#line 1 %s
+%s
+}
+\&code
 END_CODE
-    my $code = quote_sub $package . '::code', $script_code, { '$script' => \$self }, { no_install => 1 };
+    if (! $code) {
+        die $@;
+    }
     $self->{code} = $code;
 }
 
@@ -87,7 +94,7 @@ sub _string_as_i18n {
     return ''
         unless length $_[0];
     my $s = Data::Dumper::Dumper($_[0]);
-    substr $s, 0, 7, '<%= $main::Response->i18n(';
+    substr $s, 0, 7, '<%= $Response->i18n(';
     substr $s, -2, 2, ') %>';
     return $s;
 }
@@ -116,42 +123,15 @@ sub _transform_code {
         : ($1 eq '=')   ? "print $2;"   # This is <%= ... %>
                         : "$2;"         # This is <% ... %>
     }sexg;
+
     return $string;
-}
-
-sub code {
-    my $self = shift;
-    return $self->{code};
-}
-
-sub file {
-    my $self = shift;
-    return $self->{file};
-}
-
-sub timestamp {
-    my $self = shift;
-    return $self->{timestamp};
-}
-
-sub file_timestamp {
-    my $self = shift;
-    my $timestamp = (stat Cwd::abs_path($self->file))[9];
-    return $timestamp;
 }
 
 sub run {
     my $self = shift;
-    $self->{Request} = shift;
-    my $resp = $self->{Request}->Response;
+    local $self->{Request} = shift;
 
-    my $b = '';
-    open my $io, '>', \$b;
-
-    tie *$io, ref $resp, $resp;
-    my $saver = SelectSaver->new($io);
-
-    $self->code->();
+    $self->code->(@_);
 }
 
 1;
