@@ -126,9 +126,24 @@ sub Flush {
     # XXX implement streaming output
 }
 
-# XXX implement i18n
-sub i18nHandler {}
-sub i18n {}
+sub i18nHandler {
+    my $self = shift;
+    if (@_) {
+        return $self->{'mungo_i18n_handler'} = shift;
+    }
+    return $self->{'mungo_i18n_handler'};
+}
+
+sub i18n {
+    my $self = shift;
+    my $key = shift;
+    my $handler = $self->i18nHandler;
+    if ($handler && ref $handler eq 'CODE') {
+        return $handler->($key);
+    }
+    return $key;
+}
+
 
 sub TIEHANDLE {
     my $class = shift;
