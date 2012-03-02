@@ -1,5 +1,5 @@
 NAME
-    Plack-Middleware-CrossOrigin - Adds headers to allow Cross-Origin Resource Sharing
+    Mungo-PSGI - Apache::ASP workalike for PSGI
 
 INSTALLATION
     To install this distribution, run the following commands:
