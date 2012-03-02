@@ -90,41 +90,35 @@ END_CODE
     $self->{code} = $code;
 }
 
-sub _string_as_i18n {
-    return ''
-        unless length $_[0];
-    my $s = Data::Dumper::Dumper($_[0]);
-    substr $s, 0, 7, '<%= $Response->i18n(';
-    substr $s, -2, 2, ') %>';
-    return $s;
-}
-
-sub _string_as_print {
-    return ''
-        unless length $_[0];
-    my $s = Data::Dumper::Dumper($_[0]);
-    substr $s, 0, 7, 'print';
-    return $s;
-}
-
 sub _transform_code {
     my $self = shift;
     my $string = shift;
 
-    $string =~ s/I\[\[(.*?)\]\]/_string_as_i18n($1)/seg;
-    $string =~ s/^(.*?)(?=<%|$)/_string_as_print($1)/se;
-    # Replace non-code
-    $string =~ s/(?<=%>)(?!<%)(.*?)(?=<%|$)/_string_as_print($1)/seg;
-    # fixup code
-    $string =~ s{
-        <%([~=]?)(.*?)%>
-    }{
-          ($1 eq '~')   ? "print HTML::Entities::encode_entities($2,'<&>\"');"
-        : ($1 eq '=')   ? "print $2;"   # This is <%= ... %>
-                        : "$2;"         # This is <% ... %>
-    }sexg;
-
-    return $string;
+    my $out = '';
+    my @chunks = split /<%([~=]?)(.*?)%>/, $string;
+    while (@chunks) {
+        my $plain = shift @chunks;
+        if ($plain =~ s/I\[\[(.*?)\]\](.*)//s) {
+            unshift @chunks, '=', '$Response->i18n(' . $1 . ')', $2;
+        }
+        local $Data::Dumper::Terse = 1;
+        $plain = Data::Dumper::Dumper($plain);
+        chomp $plain;
+        $out .= "print($plain);";
+        last
+            unless @chunks;
+        my ($marker, $code) = (shift @chunks, shift @chunks);
+        if ($marker eq '=') {
+            $out .= "print($code);";
+        }
+        elsif ($marker eq '~') {
+            $out .= "print(HTML::Entities::encode_entities($code));";
+        }
+        else {
+            $out .= $code . ';';
+        }
+    }
+    return $out;
 }
 
 sub run {
