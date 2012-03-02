@@ -92,6 +92,10 @@ sub Include {
         $file = File::Spec->rel2abs($file, $self->Request->env->{'mungo.file_base'});
     }
     my $reload = $self->Request->env->{'mungo.reload'};
+    local $SIG{__DIE__} = sub {
+        die shift . Mungo::PSGI::Script->stacktrace;
+    };
+
     my $script = Mungo::PSGI::Script->fetch($file, $reload);
     push @{ $self->{files} }, $script;
     $script->run($self->Request, @_);

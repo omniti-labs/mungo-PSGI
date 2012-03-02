@@ -18,9 +18,6 @@ sub serve_path {
     $env->{'mungo.root'} = $self->root;
     $env->{'mungo.file_base'} = File::Spec->rel2abs(File::Basename::dirname($file));
     my $request = Mungo::PSGI::Request->new($env);
-    local $SIG{__DIE__} = sub {
-        _mungo_stacktrace(@_);
-    };
     try {
         $request->Response->Include($file);
     }
@@ -30,18 +27,6 @@ sub serve_path {
         }
     };
     return $request->Response->finalize;
-}
-
-sub _mungo_stacktrace {
-    my $err = shift;
-    my $clevel = 2;
-    while (my @caller = caller($clevel++)) {
-        my ($package, $filename, $line, $subroutine) = @caller;
-        if ($package =~ /^Mungo::PSGI::Script::__ASP_\d+__$/) {
-            $err .= "  called at $filename line $line\n";
-        }
-    }
-    die $err;
 }
 
 1;

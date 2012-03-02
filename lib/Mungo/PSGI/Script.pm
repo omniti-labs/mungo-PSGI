@@ -51,6 +51,20 @@ sub fetch {
     }
 }
 
+sub stacktrace {
+    my $class = shift;
+    my $err = '';
+    my $clevel = 2;
+    while (my @caller = caller($clevel++)) {
+        my ($package, $filename, $line) = @caller;
+        my $prefix = __PACKAGE__ . '::__ASP_';
+        if ($package =~ /^$prefix\d+__$/) {
+            $err .= "  called at $filename line $line\n";
+        }
+    }
+    return $err;
+}
+
 sub DESTROY {
     my $self = shift;
     my $package = $self->_package;
