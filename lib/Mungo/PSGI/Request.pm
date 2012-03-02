@@ -77,8 +77,7 @@ sub ServerVariables {
         return $self->referer;
     }
     elsif ($var eq 'DOCUMENT_ROOT') {
-        # XXX return something reasonable
-        return '/';
+        return $self->env->{'mungo.root'};
     }
     elsif ($var eq 'HTTP_HOST') {
         return $self->uri->host;

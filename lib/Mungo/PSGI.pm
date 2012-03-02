@@ -10,22 +10,38 @@ use Plack::Request;
 use File::Spec;
 use Mungo::PSGI::Request;
 use Try::Tiny;
+use File::Basename ();
 
 sub serve_path {
     my ($self, $env, $file) = @_;
-    $env->{'mungo.reload'} = 1
-        if $self->reload;
+    $env->{'mungo.reload'} = $self->reload;
+    $env->{'mungo.root'} = $self->root;
+    $env->{'mungo.file_base'} = File::Spec->rel2abs(File::Basename::dirname($file));
     my $request = Mungo::PSGI::Request->new($env);
+    local $SIG{__DIE__} = sub {
+        _mungo_stacktrace(@_);
+    };
     try {
         $request->Response->Include($file);
     }
     catch {
-        warn $_;
         unless ($_ && ref $_ && ref $_ eq 'ARRAY' && $_->[0] eq 'Mungo::End') {
             die $_;
         }
     };
     return $request->Response->finalize;
+}
+
+sub _mungo_stacktrace {
+    my $err = shift;
+    my $clevel = 2;
+    while (my @caller = caller($clevel++)) {
+        my ($package, $filename, $line, $subroutine) = @caller;
+        if ($package =~ /^Mungo::PSGI::Script::__ASP_\d+__$/) {
+            $err .= "  called at $filename line $line\n";
+        }
+    }
+    die $err;
 }
 
 1;

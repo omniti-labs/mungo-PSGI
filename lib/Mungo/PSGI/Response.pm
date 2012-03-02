@@ -8,6 +8,7 @@ use Scalar::Util qw(weaken);
 use URI;
 use URI::QueryParam;
 use Mungo::PSGI::Script;
+use File::Spec;
 
 sub new {
     my $class = shift;
@@ -87,10 +88,13 @@ sub Trapped {
 sub Include {
     my $self = shift;
     my $file = shift;
+    if (! ref $file) {
+        $file = File::Spec->rel2abs($file, $self->Request->env->{'mungo.file_base'});
+    }
     my $reload = $self->Request->env->{'mungo.reload'};
     my $script = Mungo::PSGI::Script->fetch($file, $reload);
     push @{ $self->{files} }, $script;
-    $script->run($self->Request);
+    $script->run($self->Request, @_);
 }
 
 sub TrapInclude {
