@@ -16,7 +16,8 @@ my $app = Mungo::PSGI->new(root => $tdata);
 test_psgi $app, sub {
      my $cb  = shift;
      my $res = $cb->(GET "/basic.asp");
-     diag $res->content;
+     like $res->content, qr/passed mungo by extension/, "basic content output";
+
 };
 
 done_testing;
