@@ -109,23 +109,30 @@ sub _transform_code {
 
     my $out = '';
     my @chunks = split /<%([~=]?)(.*?)%>/, $string;
+    # chunks will be <plain text>, <ASP block type>, <ASP Code>, <plain text>
     while (@chunks) {
         my $plain = shift @chunks;
+        # push internationalization calls on as ASP prints
         if ($plain =~ s/I\[\[(.*?)\]\](.*)//s) {
             unshift @chunks, '=', '$Response->i18n(' . $1 . ')', $2;
         }
-        local $Data::Dumper::Terse = 1;
-        $plain = Data::Dumper::Dumper($plain);
-        chomp $plain;
-        $out .= "print($plain);";
+        # convert plain text to perl string code, add as print
+        if ($plain ne '') {
+            local $Data::Dumper::Terse = 1;
+            local $Data::Dumper::Useqq = 0;
+            $plain = Data::Dumper::Dumper($plain);
+            chomp $plain;
+            $out .= "\$Response->print($plain);";
+        }
         last
-            unless @chunks;
+            if ! @chunks;
+        # marker indicates ASP block type, or empty
         my ($marker, $code) = (shift @chunks, shift @chunks);
         if ($marker eq '=') {
-            $out .= "print($code);";
+            $out .= "\$Response->print($code);";
         }
         elsif ($marker eq '~') {
-            $out .= "print(HTML::Entities::encode_entities($code));";
+            $out .= "\$Response->print(HTML::Entities::encode_entities($code));";
         }
         else {
             $out .= $code . ';';
