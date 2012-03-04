@@ -1,5 +1,9 @@
 package Mungo::PSGI::Script;
 # ABSTRACT: Mungo script
+
+# don't want any variables or pragmas to leak into generated subs
+sub _eval { eval shift or die $@ }
+
 use strict;
 use warnings;
 # VERSION
@@ -82,8 +86,11 @@ sub _clear_package {
 
 sub _code_gen {
     my $self = shift;
+    my $source = $self->_transform_code(shift);
+    my $package = $self->_package;
+    my $file = $self->file;
 
-    my $code = eval sprintf <<'END_CODE', $self->_package, $self->file, $self->_transform_code(shift);
+    my $full_source = sprintf <<'END_CODE', $package, $file, $source;
 package %s;
 sub code {
 my $Request = shift;
@@ -96,9 +103,7 @@ my $__saver = SelectSaver->new($Response->as_handle);
 }
 \&code
 END_CODE
-    if (! $code) {
-        die $@;
-    }
+    my $code = _eval $full_source;
     $self->{code} = $code;
 }
 
