@@ -67,8 +67,12 @@ sub stacktrace {
 
 sub DESTROY {
     my $self = shift;
+    $self->_clear_package;
+}
+
+sub _clear_package {
+    my $self = shift;
     my $package = $self->_package;
-    # in global destruction this may have already gone away
     return
         unless $package;
     my $stash = Package::Stash->new($package);
