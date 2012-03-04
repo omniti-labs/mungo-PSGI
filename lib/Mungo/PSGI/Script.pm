@@ -87,11 +87,7 @@ sub code {
 my $Request = $script->{Request};
 my $Server = $Request->Server;
 my $Response = $Request->Response;
-my $__saver = SelectSaver->new(do {
-    open my $io, '>', \(my $f);
-    tie *$io, ref $Response, $Response;
-    $io;
-});
+my $__saver = SelectSaver->new($Response->as_handle);
 
 #line 1 %s
 %s

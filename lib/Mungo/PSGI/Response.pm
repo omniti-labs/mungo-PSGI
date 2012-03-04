@@ -148,19 +148,33 @@ sub i18n {
     return $key;
 }
 
+sub as_handle {
+    my $self = shift;
+    open my $io, '>', \(my $f);
+    tie *$io, 'Mungo::PSGI::Response::Tied', $self;
+    return $io;
+}
 
-sub TIEHANDLE {
-    my $class = shift;
-    my $self = shift;
-    return $self;
+{
+    package Mungo::PSGI::Response::Tied;
+
+    sub TIEHANDLE {
+        my $class = shift;
+        my $Response = shift;
+        my $self = bless {
+            Response => $Response,
+        }, $class;
+        return $self;
+    }
+    sub PRINT {
+        my $self = shift;
+        $self->{Response}->print(@_);
+    }
+    sub PRINTF {
+        my $self = shift;
+        $self->{Response}->print(sprintf shift, @_);
+    }
 }
-sub PRINT {
-    my $self = shift;
-    $self->print(@_);
-}
-sub PRINTF {
-    my $self = shift;
-    $self->print(sprintf shift, @_);
-}
+
 1;
 
