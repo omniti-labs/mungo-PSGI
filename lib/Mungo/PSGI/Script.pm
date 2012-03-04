@@ -84,10 +84,9 @@ sub _code_gen {
     my $self = shift;
 
     my $code = eval sprintf <<'END_CODE', $self->_package, $self->file, $self->_transform_code(shift);
-my $script = $self;
 package %s;
 sub code {
-my $Request = $script->{Request};
+my $Request = shift;
 my $Server = $Request->Server;
 my $Response = $Request->Response;
 my $__saver = SelectSaver->new($Response->as_handle);
@@ -143,8 +142,6 @@ sub _transform_code {
 
 sub run {
     my $self = shift;
-    local $self->{Request} = shift;
-
     $self->code->(@_);
 }
 
