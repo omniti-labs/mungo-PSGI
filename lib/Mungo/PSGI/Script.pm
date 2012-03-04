@@ -16,7 +16,11 @@ sub new {
     return $self;
 }
 
-sub _package { $_[0]->{package} }
+my $package_inc = 0;
+sub _package {
+    return $_[0]->{package}
+        ||= sprintf '%s::__ASP_%s__', __PACKAGE__, ++$package_inc;
+}
 sub code { $_[0]->{code} }
 sub timestamp { $_[0]->{timestamp} }
 
@@ -35,20 +39,15 @@ sub fetch {
     }
 }
 
-{
-    my $package_inc = 0;
-    sub _parse {
-        my $self = shift;
+sub _parse {
+    my $self = shift;
 
-        $self->{package} = sprintf '%s::__ASP_%s__', __PACKAGE__, ++$package_inc;
+    my $content = $self->content;
 
-        my $content = $self->content;
+    $self->{code} = $self->_code_gen($content);
+    $self->{timestamp} = time;
 
-        $self->_code_gen($content);
-        $self->{timestamp} = time;
-
-        return 1;
-    }
+    return 1;
 }
 
 sub stacktrace {
