@@ -96,6 +96,11 @@ sub code {
 my $Request = shift;
 my $Server = $Request->Server;
 my $Response = $Request->Response;
+$Request->use_globals
+    and local $::Request = $Request
+    and local $::Server = $Server
+    and local $::Response = $Response
+;
 my $__saver = SelectSaver->new($Response->as_handle);
 
 #line 1 %s

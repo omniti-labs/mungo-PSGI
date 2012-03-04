@@ -98,5 +98,10 @@ sub Header {
     return $self->header(@_);
 }
 
+sub use_globals {
+    my $self = shift;
+    return $self->env->{'mungo.use_globals'};
+}
+
 1;
 

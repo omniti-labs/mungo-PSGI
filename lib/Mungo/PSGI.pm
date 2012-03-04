@@ -4,7 +4,7 @@ use strict;
 use warnings;
 # VERSION
 use parent qw(Plack::App::File);
-use Plack::Util::Accessor qw(buffer reload);
+use Plack::Util::Accessor qw(buffer reload globals);
 
 use Plack::Request;
 use File::Spec;
@@ -16,6 +16,7 @@ sub serve_path {
     my ($self, $env, $file) = @_;
     $env->{'mungo.reload'} = $self->reload;
     $env->{'mungo.root'} = $self->root;
+    $env->{'mungo.use_globals'} = $self->globals;
     $env->{'mungo.file_base'} = File::Spec->rel2abs(File::Basename::dirname($file));
     my $request = Mungo::PSGI::Request->new($env);
     try {
