@@ -22,7 +22,7 @@ sub Response {
 
 sub Server {
     my $self = shift;
-    return $self->{mungo_response};
+    return $self->{mungo_server};
 }
 
 sub Cookies {
