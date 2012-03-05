@@ -9,8 +9,10 @@ use Digest::MD5 ();
 sub new {
     my $class = shift;
     my $content = shift;
+    my $name = shift || '(ANON)';
     my $self = $class->SUPER::new(
         content => $content,
+        name => $name,
     );
     return $self;
 }
@@ -27,7 +29,7 @@ sub fetch {
     return $script;
 }
 
-sub file { '(ANON)' }
+sub file { $_[0]->{name} }
 sub content { $_[0]->{content} }
 
 
