@@ -1,5 +1,5 @@
 package Mungo::PSGI;
-# ABSTRACT: Apache::ASP workalike for PSGI
+# ABSTRACT: Apache::ASP inspired lightweight framework for PSGI
 use strict;
 use warnings;
 # VERSION
@@ -32,15 +32,15 @@ sub serve_path {
 
 1;
 
-__END__
-
 =head1 SYNOPSIS
 
-    use Plack::Builder;
-    builder {
-        enable_if { $_[0]->{SCRIPT_NAME} =~ /\.asp$/ } "Mungo::PSGI";
-        $app;
-    };
+    use Mungo::PSGI;
+    
+    my $app = Mungo::PSGI->(root => $root);
+
+=head1 DESCRIPTION
+
+Mungo::ASP is designed to be compatible with ASP scripts written for Mungo.
 
 =cut
 

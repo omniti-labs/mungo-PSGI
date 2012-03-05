@@ -1,5 +1,5 @@
 NAME
-    Mungo-PSGI - Apache::ASP workalike for PSGI
+    Mungo-PSGI - Apache::ASP inspired lightweight framework for PSGI
 
 INSTALLATION
     To install this distribution, run the following commands:
