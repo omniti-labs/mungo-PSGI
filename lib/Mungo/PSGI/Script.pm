@@ -92,7 +92,7 @@ sub _code_gen {
 
     my $full_source = sprintf <<'END_CODE', $package, $file, $source;
 package %s;
-sub code {
+sub {
 local our $Request = shift;
 local our $Server = $Request->Server;
 local our $Response = $Request->Response;
@@ -106,10 +106,8 @@ my $__saver = SelectSaver->new($Response->as_handle);
 #line 1 %s
 %s
 }
-\&code
 END_CODE
-    my $code = _eval $full_source;
-    $self->{code} = $code;
+    return _eval($full_source);
 }
 
 sub _transform_code {
