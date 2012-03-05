@@ -115,7 +115,7 @@ sub _transform_code {
     my $string = shift;
 
     my $out = '';
-    my @chunks = split /<%([~=]?)(.*?)%>/, $string;
+    my @chunks = split /<%([~=]?)(.*?)%>/msx, $string;
     # chunks will be <plain text>, <ASP block type>, <ASP Code>, <plain text>
     while (@chunks) {
         my $plain = shift @chunks;
