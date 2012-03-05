@@ -93,9 +93,9 @@ sub _code_gen {
     my $full_source = sprintf <<'END_CODE', $package, $file, $source;
 package %s;
 sub code {
-my $Request = shift;
-my $Server = $Request->Server;
-my $Response = $Request->Response;
+local our $Request = shift;
+local our $Server = $Request->Server;
+local our $Response = $Request->Response;
 $Request->use_globals
     and local $::Request = $Request
     and local $::Server = $Server
