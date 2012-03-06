@@ -110,39 +110,59 @@ END_CODE
     return _eval($full_source);
 }
 
+sub _string_as_code {
+    local $Data::Dumper::Terse = 1;
+    local $Data::Dumper::Useqq = 0;
+    my $plain = Data::Dumper::Dumper(shift);
+    chomp $plain;
+    return $plain;
+}
+
 sub _transform_code {
     my $self = shift;
     my $string = shift;
 
     my $out = '';
-    my @chunks = split /<%([~=]?)(.*?)%>/msx, $string;
-    # chunks will be <plain text>, <ASP block type>, <ASP Code>, <plain text>
-    while (@chunks) {
-        my $plain = shift @chunks;
+    while ($string =~ /\G(.*?)(?=<%|\z)/msxgc) {
+        my $plain = $1;
         # push internationalization calls on as ASP prints
-        if ($plain =~ s/I\[\[(.*?)\]\](.*)//s) {
-            unshift @chunks, '=', '$Response->i18n(' . $1 . ')', $2;
-        }
-        # convert plain text to perl string code, add as print
-        if ($plain ne '') {
-            local $Data::Dumper::Terse = 1;
-            local $Data::Dumper::Useqq = 0;
-            $plain = Data::Dumper::Dumper($plain);
-            chomp $plain;
-            $out .= "\$Response->print($plain);";
+        while ($plain =~ /\G(.*?)(?:I\[\[(.*?)\]\]|\z)/msxgc) {
+            my $i18n = $2;
+            if ($1 ne '') {
+                $out .= '$Response->print(' . _string_as_code("$1") . ');';
+            }
+            if (defined $i18n) {
+                $out .= '$Response->print($Response->i18n(' . _string_as_code("$1") . '));';
+            }
         }
         last
-            if ! @chunks;
-        # marker indicates ASP block type, or empty
-        my ($marker, $code) = (shift @chunks, shift @chunks);
-        if ($marker eq '=') {
-            $out .= "\$Response->print($code);";
-        }
-        elsif ($marker eq '~') {
-            $out .= "\$Response->print(HTML::Entities::encode_entities($code));";
-        }
-        else {
-            $out .= $code . ';';
+            if pos $string >= length $string;
+
+        if ($string =~ /\G<%/msxgc) {
+            if ($string =~ /\G([=~]?)(.*?)%>/msxgc) {
+                my ($marker, $code) = ($1, $2);
+                if ($marker eq '') {
+                    $out .= $code . ';';
+                }
+                elsif ($marker eq '=') {
+                    $out .= '$Response->print(do{' . $code . '});';
+                }
+                elsif ($marker eq '~') {
+                    $out .= '$Response->print(HTML::Entities::encode_entities(do{' . $code . '}));';
+                }
+            }
+            else {
+                my $startpos = pos($string) - 2;
+
+                my $pre = substr $string, 0, $startpos;
+                my $lines = $pre =~ tr/\n/\n/ + 1;
+
+                my $section = substr $string, $startpos, 20;
+                $section =~ s/\n/\\n/g;
+                $section .= '...';
+
+                die "Can't find end of ASP section '$section' at line $lines";
+            }
         }
     }
     return $out;
