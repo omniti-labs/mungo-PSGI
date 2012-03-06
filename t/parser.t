@@ -107,6 +107,16 @@ END_ASP
     \n
 END_WANTED
 
+{ name => 'incomplete-section', asp => <<'END_ASP', error => <<'END_ERROR' },
+    Leader
+    <%
+    my $string = "string";
+END_ASP
+    ^
+    Can.t[ ]find[ ]end[ ]of[ ]ASP[ ]section
+    .*
+    line[ ]2
+END_ERROR
 );
 
 plan tests => scalar @tests;
@@ -121,7 +131,7 @@ for my $test (@tests) {
 
         my $asp = $test->{asp};
         $asp =~ s/^    //msg;
-        my $wanted = qr/$test->{wanted}/x;
+        my $wanted = $test->{wanted} ? qr/$test->{wanted}/x : qr/$test->{error}/x;
         my $name = "$test->{name} script";
 
         $req->Response->body([]);
@@ -130,11 +140,22 @@ for my $test (@tests) {
             $script->run($req);
             my $output = join '', @{ $resp->body };
 
-            like $output, $wanted, $name;
+            if ($test->{wanted}) {
+                like $output, $wanted, $name;
+            }
+            else {
+                fail $name
+                    and diag "expected error, got $output";
+            }
         }
         catch {
-            fail $name;
-            diag $_;
+            if ($test->{wanted}) {
+                fail $name;
+                diag $_;
+            }
+            else {
+                like "$_", $wanted, $name;
+            }
         }
     }
 }
