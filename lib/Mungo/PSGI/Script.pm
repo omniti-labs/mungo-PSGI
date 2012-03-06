@@ -92,6 +92,7 @@ sub _code_gen {
 
     my $full_source = sprintf <<'END_CODE', $package, $file, $source;
 package %s;
+use warnings FATAL => qw(closure deprecated redefine severe syntax void);
 sub {
 local our $Request = shift;
 local our $Server = $Request->Server;
