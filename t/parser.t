@@ -1,10 +1,12 @@
-use strict;
-use warnings;
-use Test::More;
-
+use strictures;
+use File::Spec;
+use File::Basename ();
 use lib File::Spec->catdir(File::Spec->rel2abs(File::Basename::dirname(__FILE__)), 'lib');
+
+use Test::More;
 use Mungo::Test;
 use Test::Fatal;
+
 
 asp_like <<'END_ASP', <<'END_WANTED', 'no leader';
 Leader
