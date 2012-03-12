@@ -126,8 +126,14 @@ sub _transform_code {
     my $out = '';
     while ($string =~ /\G(.*?)(?=<%|\z)/msxgc) {
         my $plain = $1;
-        # push internationalization calls on as ASP prints
-        while ($plain =~ /\G(.*?)(?:I\[\[(.*?)\]\]|\z)/msxgc) {
+        while ($plain =~ m{
+            \G (.*?)
+            (?:
+                \QI[[\E (.*?) \Q]]\E
+            |
+                \z
+            )
+        }msxgc) {
             my $i18n = $2;
             if ($1 ne '') {
                 $out .= '$Response->print(' . _string_as_code("$1") . ');';
