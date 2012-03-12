@@ -42,32 +42,29 @@ sub Cookies {
 
 sub QueryString {
     my $self = shift;
-    my $params = $self->query_parameters;
+    my $params = $self->query_parameters->as_hashref_mixed;
     if (@_) {
-        return $params->get(shift);
+        return $params->{ +shift };
     }
-    my $copy = $params->as_hashref;
-    return wantarray ? %$copy : $copy;
+    return wantarray ? %$params : $params;
 }
 
 sub Form {
     my $self = shift;
-    my $params = $self->body_parameters;
+    my $params = $self->body_parameters->as_hashref_mixed;
     if (@_) {
-        return $params->get(shift);
+        return $params->{ +shift };
     }
-    my $copy = $params->as_hashref;
-    return wantarray ? %$copy : $copy;
+    return wantarray ? %$params : $params;
 }
 
 sub Params {
     my $self = shift;
-    my $params = $self->parameters;
+    my $params = $self->parameters->as_hashref_mixed;
     if (@_) {
-        return $params->get(shift);
+        return $params->{ +shift };
     }
-    my $copy = $params->as_hashref;
-    return wantarray ? %$copy : $copy;
+    return wantarray ? %$params : $params;
 }
 
 sub ServerVariables {
