@@ -180,7 +180,7 @@ sub _transform_code {
 
 sub run {
     my $self = shift;
-    $self->code->(@_);
+    goto $self->code;
 }
 
 1;
