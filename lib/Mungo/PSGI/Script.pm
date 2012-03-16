@@ -102,10 +102,13 @@ $Request->use_globals
     and local $::Server = $Server
     and local $::Response = $Response
 ;
-my $__saver = SelectSaver->new($Response->as_handle);
-
+# hide saver in a lexical, then re-alias the var back to global
+# prevents introducing an additional var
+my $_ = SelectSaver->new($Response->as_handle);
+{ our $_;
 #line 1 %s
 %s
+}
 }
 END_CODE
     return _eval($full_source);
