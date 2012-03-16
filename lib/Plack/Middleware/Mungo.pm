@@ -6,7 +6,7 @@ use warnings;
 use parent qw(Plack::Middleware);
 use Mungo::PSGI;
 
-use Plack::Util::Accessor qw( path root buffer pass_through );
+use Plack::Util::Accessor qw( path root buffer pass_through reload );
 
 sub call {
     my $self = shift;

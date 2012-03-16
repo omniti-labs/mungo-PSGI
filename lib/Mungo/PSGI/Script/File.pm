@@ -17,7 +17,7 @@ sub fetch {
     my $class = shift;
     my ($file, $reload) = @_;
     my $script = $cache{$file};
-    if (! $script || ! $script->up_to_date) {
+    if (! $script || $reload && ! $script->up_to_date) {
         return $cache{$file} = $class->new(@_);
     }
     return $script;
