@@ -23,11 +23,21 @@ sub serve_path {
         $request->Response->Include($file);
     }
     catch {
+        local $SIG{__DIE__};
         unless ($_ && ref $_ && ref $_ eq 'ARRAY' && $_->[0] eq 'Mungo::End') {
             die $_;
         }
     };
     return $request->Response->finalize;
+}
+sub to_app {
+    my $self = shift;
+    my $app = $self->SUPER::to_app(@_);
+    if ($ENV{PLACK_ENV} && $ENV{PLACK_ENV} eq 'development') {
+        require Plack::Middleware::StackTrace::Mungo;
+        $app = Plack::Middleware::StackTrace::Mungo->wrap($app);
+    }
+    return $app;
 }
 
 1;

@@ -35,9 +35,9 @@ sub _handle_mungo {
         root => $self->root,
         reload => $self->reload,
         buffer => $self->buffer,
-    });
+    })->to_app;
     local $env->{PATH_INFO} = $path; # rewrite PATH
-    return $self->{mungo}->call($env);
+    return $self->{mungo}->($env);
 }
 
 1;
