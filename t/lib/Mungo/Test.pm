@@ -1,6 +1,5 @@
 package Mungo::Test;
-use strict;
-use warnings;
+use strictures 1;
 use parent qw(Test::Builder::Module);
 use Try::Tiny;
 use Test::MockObject;

@@ -4,8 +4,7 @@ package Mungo::PSGI::Script;
 # don't want any variables or pragmas to leak into generated subs
 sub _eval { eval shift or die $@ }
 
-use strict;
-use warnings;
+use strictures;
 # VERSION
 use Package::Stash ();
 use SelectSaver ();

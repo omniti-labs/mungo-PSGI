@@ -1,7 +1,6 @@
 package Mungo::PSGI::Server;
 # ABSTRACT: Mungo server object
-use strict;
-use warnings;
+use strictures 1;
 # VERSION
 use Mungo::PSGI::Request;
 use URI::Escape ();

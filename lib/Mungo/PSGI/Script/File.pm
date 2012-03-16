@@ -1,7 +1,6 @@
 package Mungo::PSGI::Script::File;
 # ABSTRACT: Mungo script from file
-use strict;
-use warnings;
+use strictures 1;
 # VERSION
 use parent qw(Mungo::PSGI::Script);
 

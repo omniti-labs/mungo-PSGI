@@ -1,7 +1,6 @@
 package Mungo::PSGI;
 # ABSTRACT: Apache::ASP inspired lightweight framework for PSGI
-use strict;
-use warnings;
+use strictures 1;
 # VERSION
 use parent qw(Plack::App::File);
 use Plack::Util::Accessor qw(buffer reload globals);

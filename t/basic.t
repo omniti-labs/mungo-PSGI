@@ -1,4 +1,4 @@
-use strictures;
+use strictures 1;
 use File::Spec;
 use File::Basename ();
 use lib File::Spec->catdir(File::Spec->rel2abs(File::Basename::dirname(__FILE__)), 'lib');

@@ -1,5 +1,4 @@
-use strict;
-use warnings;
+use strictures 1;
 use Test::More;
 
 my @modules = qw(

@@ -1,7 +1,6 @@
 package Mungo::PSGI::Request;
 # ABSTRACT: Mungo request object
-use strict;
-use warnings;
+use strictures 1;
 # VERSION
 use parent qw(Plack::Request);
 use Mungo::PSGI::Server;

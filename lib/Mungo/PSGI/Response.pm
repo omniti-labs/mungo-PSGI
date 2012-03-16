@@ -1,7 +1,6 @@
 package Mungo::PSGI::Response;
 # ABSTRACT: Mungo response object
-use strict;
-use warnings;
+use strictures 1;
 # VERSION
 use parent qw(Plack::Response);
 use Scalar::Util qw(weaken);

@@ -1,7 +1,6 @@
 package Plack::Middleware::Mungo;
 # ABSTRACT: Middleware to enable Mungo
-use strict;
-use warnings;
+use strictures 1;
 # VERSION
 use parent qw(Plack::Middleware);
 use Mungo::PSGI;

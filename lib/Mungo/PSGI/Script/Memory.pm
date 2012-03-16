@@ -1,7 +1,6 @@
 package Mungo::PSGI::Script::Memory;
 # ABSTRACT: Mungo script from memory
-use strict;
-use warnings;
+use strictures 1;
 # VERSION
 use parent qw(Mungo::PSGI::Script);
 use Digest::MD5 ();
